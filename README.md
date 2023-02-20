@@ -7,7 +7,7 @@ First, I have to give credit to other folks on the internet for finding referenc
 Equipment Supported:
   - Jandy Flopro vs 1.65 pumps
   - Century vgreen 0.85/1.65 pumps
-  - Relay control Cleaner Booster pump
+  - Relay Control Cleaner Booster pump
 
 
 Requirements:
@@ -21,4 +21,6 @@ Requirements:
   - TCP/IP to rs-485 converter or any method to communicate rs-485 to pumps
   - Relay control module
 
+Variable Speed Pump Commands:
+Below are the following commands used to control the pump, this is not a complete list of what is possiable just what is currently being used.  All commands assmue the modbus address is 0x15 (default) but this can be changed per the attached document.  The pump will require the "go cmd" be sent continuosly without out 60 seconds passing between commands or the pump will go into fault and stop.  The pump only requires the return of the "go cmd" to continue operating again.  This flow currently only uses the commands listed below but more are avaiable per the attached document.  
 
