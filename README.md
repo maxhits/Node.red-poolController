@@ -4,13 +4,12 @@ Pool Controller to replace Aqualink RS Controller, works with Jandy rs-485 pumps
 First, I have to give credit to other folks on the internet for finding reference documents contained here in detailing the "GEN3 EPC Modbus Communication Protocol" and how to use it to communicate to Century vgreen pumps and other re-branded Century pumps such as Jandy and others.  I also need to give credit to the users from the "troublefreepool.com" forum for posting how to convert a Century vgreen to accept the Jandy rs-485 protocol.  
 
 
-Equipment Supported:
+## Equipment Supported:
   - Jandy Flopro vs 1.65 pumps
   - Century vgreen 0.85/1.65 pumps
   - Relay Control Cleaner Booster pump
 
-
-Requirements:
+## Requirements:
   - Computer running Node-red with TCP/IP to rtu avaiable to connect to rs-485 network (good application for a SBC like Raspberry PI)
   - Node-red Paletes used:
     - Node-red
@@ -22,7 +21,8 @@ Requirements:
   - TCP/IP to rs-485 converter or any method to communicate rs-485 to pumps
   - Relay control module (using Automation Direct CLICK PLC for Remote I/O)
 
-Variable Speed Pump Controls:
+## Variable Speed Pump Controls:
+    
 Below are the following commands used to control the pump, this is not a complete list of what is possible just what is currently being used.  All commands assume the Modbus address is 0x15 (default) but this can be changed per the attached document.  The pump will require the "go cmd" be sent continuously without out 60 seconds passing between commands or the pump will go into fault and stop.  The pump only requires the return of the "go cmd" to continue operating again.  This Node-red flow currently only uses the commands listed below but more are available per the attached document.
 
   - Start/Stop Commands:
@@ -37,14 +37,27 @@ Below are the following commands used to control the pump, this is not a complet
  
 ![cmd-speed-table](https://user-images.githubusercontent.com/104328486/220181978-7ce8fd86-f68a-4b9b-878e-0e29ee20520d.png)
 
+  - Read Sensors from Unit:
+  
+![cmd-sensors-table](https://user-images.githubusercontent.com/104328486/220202703-0fd5c7f1-c8d2-467a-9e9e-c8e811f50ee6.png)
+
+
 For Modbus communication the dip switches on the pump should be set per below with all switches off unless you need 12v for your rs485 device.  
 
 ![pump dip switch](https://user-images.githubusercontent.com/104328486/220182459-9658c7fa-7820-4331-b1cf-4885da9468cc.png)
 ![dip-switch-table](https://user-images.githubusercontent.com/104328486/220189544-5e4f9789-2fe1-46ec-b84c-08379fd7505a.png)
 
-Node-red flows:
-Coming Soon!
+## Node-red flows:
+
+Import Flows into Node-red
+  - Main_Pump_Flow.json
+  - Waterfall_Pump_Flow.json
+
+
+-------------------------------------------------------------------------------------------------------------------------------------------
+
 
 Screen Shot Home Page and Setting Page:
 ![homeScreen](https://user-images.githubusercontent.com/104328486/220188778-a0641e7f-ad91-459f-8a55-d76ca2c1f07f.png)
+
 ![setpointScreen](https://user-images.githubusercontent.com/104328486/220188787-5ff211b0-641d-4718-bb86-3bf16220a008.png)
