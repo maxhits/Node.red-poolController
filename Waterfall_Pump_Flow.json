@@ -1,0 +1,700 @@
+[
+    {
+        "id": "2242e2f628b1ea7d",
+        "type": "tab",
+        "label": "Waterfall Pump",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "3ab6c971f06f442d",
+        "type": "function",
+        "z": "2242e2f628b1ea7d",
+        "name": "CRC16-modbus",
+        "func": "var CRCMaster = {\n    StringToCheck: \"\",\n    CleanedString: \"\",\n    CRCTableDNP: [],\n    init: function() {\n        this.CRCDNPInit();\n    },\n    CleanString: function(inputType) {\n        if (inputType == \"ASCII\") {\n            this.CleanedString = this.StringToCheck;\n        } else {\n            if (this.StringToCheck.match(/^[0-9A-F \\t]+$/gi) !== null) {\n                this.CleanedString = this._hexStringToString(this.StringToCheck.toUpperCase().replace(/[\\t ]/g, ''));\n            } else {\n                //window.alert(\"String doesn't seem to be a valid Hex input.\");\n                return false;\n            }\n        }\n        return true;\n    },\n    CRCDNPInit: function() {\n        var i, j, crc, c;\n        for (i = 0; i < 256; i++) {\n            crc = 0;\n            c = i;\n            for (j = 0; j < 8; j++) {\n                if ((crc ^ c) & 0x0001) crc = (crc >> 1) ^ 0xA6BC;\n                else crc = crc >> 1;\n                c = c >> 1;\n            }\n            this.CRCTableDNP[i] = crc;\n        }\n    },\n    CRC16Modbus: function() {\n        var crc = 0xFFFF;\n        var str = this.CleanedString;\n        for (var pos = 0; pos < str.length; pos++) {\n            crc ^= str.charCodeAt(pos);\n            for (var i = 8; i !== 0; i--) {\n                if ((crc & 0x0001) !== 0) {\n                    crc >>= 1;\n                    crc ^= 0xA001;\n                } else\n                    crc >>= 1;\n            }\n        }\n        return crc;\n    },\n    _stringToBytes: function(str) {\n        var ch, st, re = [];\n        for (var i = 0; i < str.length; i++) {\n            ch = str.charCodeAt(i); // get char\n            st = []; // set up \"stack\"\n            do {\n                st.push(ch & 0xFF); // push byte to stack\n                ch = ch >> 8; // shift value down by 1 byte\n            }\n            while (ch);\n            // add stack contents to result\n            // done because chars have \"wrong\" endianness\n            re = re.concat(st.reverse());\n        }\n        // return an array of bytes\n        return re;\n    },\n    _hexStringToString: function(inputstr) {\n        var hex = inputstr.toString(); //force conversion\n        var str = '';\n        for (var i = 0; i < hex.length; i += 2)\n            str += String.fromCharCode(parseInt(hex.substr(i, 2), 16));\n        return str;\n    },\n    Calculate: function(str, inputType) {\n        this.StringToCheck = str;\n        if (this.CleanString(inputType)) {\n            crcinputcrc16modbus=this.CRC16Modbus().toString(16).toUpperCase();\n            crcinputcrc16modbus=crcinputcrc16modbus.substr(2) + crcinputcrc16modbus.substr(0, 2); //swap bytes\n   \n        }\n    }\n};\n\nCRCMaster.init();\n\nvar inputType = \"HEX\";\nvar crcinputcrc16modbus;\nvar crcinput = msg.payload;\n\nCRCMaster.Calculate(crcinput, inputType);\n\nmsg.payload = crcinput + crcinputcrc16modbus;\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 360,
+        "y": 560,
+        "wires": [
+            [
+                "73c78aa373f47825"
+            ]
+        ]
+    },
+    {
+        "id": "c41c5811e0e50c09",
+        "type": "ui_numeric",
+        "z": "2242e2f628b1ea7d",
+        "name": "",
+        "label": "Waterfall Pump Speed",
+        "tooltip": "",
+        "group": "7692346a821a947a",
+        "order": 5,
+        "width": 0,
+        "height": 0,
+        "wrap": false,
+        "passthru": true,
+        "topic": "WFPumpSP",
+        "topicType": "str",
+        "format": "{{value}}",
+        "min": "2000",
+        "max": "3500",
+        "step": "50",
+        "className": "",
+        "x": 120,
+        "y": 480,
+        "wires": [
+            [
+                "6d2bc6d569285dc4",
+                "2aa8b8db0686664c"
+            ]
+        ]
+    },
+    {
+        "id": "6d2bc6d569285dc4",
+        "type": "function",
+        "z": "2242e2f628b1ea7d",
+        "name": "Set_Speed_CMD",
+        "func": "var speed = msg.payload;\nspeed = speed * 4;\n//msg.payload=speed;\n\nvar hex = (speed).toString(16);\nvar len = hex.length;\nvar padLen = len + (len % 2);\nvar hexPad = hex.padStart(Math.max(padLen, 4), '0');\nvar pairs = hexPad.match(/../g).reverse().map(p => parseInt(p, 16));\nvar ui8Arr = new Uint8Array(pairs);\n\nvar buffCmd = Buffer.from(\"\\x15\\x44\\x20\\x00\");\nvar buffSP = Buffer.from(ui8Arr);\nvar arrComb = [buffCmd,buffSP];\nvar speedCmd = Buffer.concat(arrComb)\nhex = speedCmd.toString('hex');\n\nmsg.payload = hex;\n//return {'payload':ui8Arr};\n\nreturn msg;",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 130,
+        "y": 560,
+        "wires": [
+            [
+                "3ab6c971f06f442d"
+            ]
+        ]
+    },
+    {
+        "id": "aa3f020438125ffe",
+        "type": "function",
+        "z": "2242e2f628b1ea7d",
+        "name": "Run Pump",
+        "func": "if (msg.payload === 1) {\n    // run pump command\n    msg.payload = Buffer.from(\"154120518C\", \"hex\");\n    await delay(500);\n    return msg;\n}\nasync function delay(timeMs) {\n    await new Promise(resolve => setTimeout(resolve, timeMs));\n}",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 650,
+        "y": 320,
+        "wires": [
+            [
+                "11ef37aa9891664a"
+            ]
+        ]
+    },
+    {
+        "id": "c706727fc5e07d59",
+        "type": "function",
+        "z": "2242e2f628b1ea7d",
+        "name": "Stop Pump",
+        "func": "await delay(500);\n\nif (msg.payload === 0) {\n    global.set('counterWFP',0);\n    return [{ payload:Buffer.from(\"154220517C\",\"hex\")}];\n}\n\nasync function delay(timeMs) {\n    await new Promise(resolve => setTimeout(resolve, timeMs));\n}",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 650,
+        "y": 260,
+        "wires": [
+            [
+                "11ef37aa9891664a"
+            ]
+        ]
+    },
+    {
+        "id": "dca8bf402e9e9a2e",
+        "type": "tcp request",
+        "z": "2242e2f628b1ea7d",
+        "name": "",
+        "server": "192.168.100.25",
+        "port": "3001",
+        "out": "time",
+        "ret": "buffer",
+        "splitc": "0",
+        "newline": "",
+        "trim": false,
+        "tls": "",
+        "x": 1130,
+        "y": 380,
+        "wires": [
+            [
+                "f28f7690adbe26bd",
+                "41575a147acbb583",
+                "64146a262769c5e8"
+            ]
+        ]
+    },
+    {
+        "id": "b1350cfc78c50eee",
+        "type": "function",
+        "z": "2242e2f628b1ea7d",
+        "name": "Pump Status",
+        "func": "if(msg.payload === 1) {\n    // check pump status\n    msg.payload=Buffer.from(\"15432050EC\",\"hex\");\n    await delay(600);\n    return msg;\n}\nasync function delay(timeMs) {\n    await new Promise(resolve => setTimeout(resolve, timeMs));\n}",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 870,
+        "y": 40,
+        "wires": [
+            [
+                "11ef37aa9891664a"
+            ]
+        ]
+    },
+    {
+        "id": "f28f7690adbe26bd",
+        "type": "function",
+        "z": "2242e2f628b1ea7d",
+        "name": "Pump Status",
+        "func": "if(msg.payload[1] === 67 && msg.payload[0] === 21) {\n    if(msg.payload[3] === 0) { msg.payload=0 }\n    if(msg.payload[3] === 11) { msg.payload=1}\n    if(msg.payload[3] === 32) { msg.payload=2}\n    return msg;\n}",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1090,
+        "y": 440,
+        "wires": [
+            [
+                "d265227f7ce05653"
+            ]
+        ]
+    },
+    {
+        "id": "063ad6f1a3fbc839",
+        "type": "function",
+        "z": "2242e2f628b1ea7d",
+        "name": "Pump Speed",
+        "func": "if(msg.payload === 1) {\n    // check pump rpm\n    msg.payload=Buffer.from(\"15452000003D05\",\"hex\");\n    await delay(700);\n    return msg;\n}\n\nasync function delay(timeMs) {\n    await new Promise(resolve => setTimeout(resolve, timeMs));\n}",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 870,
+        "y": 80,
+        "wires": [
+            [
+                "11ef37aa9891664a"
+            ]
+        ]
+    },
+    {
+        "id": "7f2e0bdaf085ca0e",
+        "type": "ui_gauge",
+        "z": "2242e2f628b1ea7d",
+        "name": "",
+        "group": "48d756b4de93a0b0",
+        "order": 3,
+        "width": 0,
+        "height": 0,
+        "gtype": "gage",
+        "title": "Waterfall Pump Speed",
+        "label": "RPM",
+        "format": "{{value}}",
+        "min": 0,
+        "max": "3600",
+        "colors": [
+            "#ca3838",
+            "#ffff00",
+            "#00b500"
+        ],
+        "seg1": "600",
+        "seg2": "1800",
+        "diff": false,
+        "className": "",
+        "x": 1340,
+        "y": 480,
+        "wires": []
+    },
+    {
+        "id": "41575a147acbb583",
+        "type": "function",
+        "z": "2242e2f628b1ea7d",
+        "name": "Pump Speed",
+        "func": "if(msg.payload[4] === 0 && msg.payload[0] === 21) {\n    var msgOutput = msg.payload[6].toString(16) + msg.payload[5].toString(16);\n    var msgSpeed = parseInt(msgOutput, 16)/4;\n    return [{'payload':msgSpeed},{'payload':msgOutput}];\n}",
+        "outputs": 2,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1090,
+        "y": 480,
+        "wires": [
+            [
+                "7f2e0bdaf085ca0e"
+            ],
+            []
+        ]
+    },
+    {
+        "id": "ffc82838237a2856",
+        "type": "inject",
+        "z": "2242e2f628b1ea7d",
+        "name": "Poll Status",
+        "props": [
+            {
+                "p": "payload"
+            },
+            {
+                "p": "topic",
+                "vt": "str"
+            }
+        ],
+        "repeat": "18000",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "1",
+        "payloadType": "num",
+        "x": 650,
+        "y": 40,
+        "wires": [
+            [
+                "b1350cfc78c50eee",
+                "063ad6f1a3fbc839",
+                "4e0c59f08b380c9d"
+            ]
+        ]
+    },
+    {
+        "id": "f9b343e0b7e286a6",
+        "type": "trigger",
+        "z": "2242e2f628b1ea7d",
+        "name": "Keep Alive Pulse",
+        "op1": "1",
+        "op2": "0",
+        "op1type": "num",
+        "op2type": "str",
+        "duration": "-5",
+        "extend": false,
+        "overrideDelay": false,
+        "units": "s",
+        "reset": "0",
+        "bytopic": "all",
+        "topic": "topic",
+        "outputs": 1,
+        "x": 410,
+        "y": 320,
+        "wires": [
+            [
+                "aa3f020438125ffe",
+                "9c44f69ffc362448"
+            ]
+        ]
+    },
+    {
+        "id": "e77263115e1ca086",
+        "type": "eztimer",
+        "z": "2242e2f628b1ea7d",
+        "name": "Run Waterfall Pool Pump",
+        "debug": false,
+        "autoname": "12:30 - 13:30",
+        "tag": "eztimer",
+        "topic": "",
+        "suspended": false,
+        "sendEventsOnSuspend": false,
+        "latLongSource": "manual",
+        "latLongHaZone": "zone.home",
+        "lat": "",
+        "lon": "",
+        "timerType": "1",
+        "startupMessage": true,
+        "ontype": "2",
+        "ontimesun": "dawn",
+        "ontimetod": "12:30",
+        "onpropertytype": "msg",
+        "onproperty": "payload",
+        "onvaluetype": "num",
+        "onvalue": 1,
+        "onoffset": 0,
+        "onrandomoffset": 0,
+        "onsuppressrepeats": false,
+        "offtype": "2",
+        "offtimesun": "dusk",
+        "offtimetod": "13:30",
+        "offduration": "00:01:00",
+        "offpropertytype": "msg",
+        "offproperty": "payload",
+        "offvaluetype": "num",
+        "offvalue": 0,
+        "offoffset": 0,
+        "offrandomoffset": 0,
+        "offsuppressrepeats": false,
+        "resend": false,
+        "resendInterval": "0s",
+        "mon": false,
+        "tue": false,
+        "wed": false,
+        "thu": false,
+        "fri": false,
+        "sat": true,
+        "sun": true,
+        "x": 150,
+        "y": 260,
+        "wires": [
+            [
+                "c706727fc5e07d59",
+                "f9b343e0b7e286a6",
+                "73c78aa373f47825"
+            ]
+        ]
+    },
+    {
+        "id": "d265227f7ce05653",
+        "type": "ui_led",
+        "z": "2242e2f628b1ea7d",
+        "order": 2,
+        "group": "48d756b4de93a0b0",
+        "width": 0,
+        "height": 0,
+        "label": "Waterfall Pump Run Status",
+        "labelPlacement": "left",
+        "labelAlignment": "left",
+        "colorForValue": [
+            {
+                "color": "#ff0000",
+                "value": "0",
+                "valueType": "num"
+            },
+            {
+                "color": "#008000",
+                "value": "1",
+                "valueType": "num"
+            },
+            {
+                "color": "#ffff00",
+                "value": "2",
+                "valueType": "num"
+            }
+        ],
+        "allowColorForValueInMessage": false,
+        "shape": "circle",
+        "showGlow": false,
+        "name": "",
+        "x": 1290,
+        "y": 440,
+        "wires": []
+    },
+    {
+        "id": "12e9a83fdd105b4b",
+        "type": "function",
+        "z": "2242e2f628b1ea7d",
+        "name": "HOA_Convert",
+        "func": "if(msg.payload==='hand'){\n    msg.payload = {'suspended':true};\n    msg.payload = {'action':'on'};\n    return msg;\n}\nelse if(msg.payload==='auto'){\n    msg.payload = {'suspended':false};\n    msg.payload = { 'action': 'off' };\n    return msg;\n}\nelse{\n    msg.payload = {'suspended':false};\n    msg.payload = {'action':'off'};\n    return msg;\n}",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 380,
+        "y": 200,
+        "wires": [
+            [
+                "e77263115e1ca086"
+            ]
+        ]
+    },
+    {
+        "id": "73c78aa373f47825",
+        "type": "function",
+        "z": "2242e2f628b1ea7d",
+        "name": "Set Variables",
+        "func": "if(msg.payload === 1){\n    global.set('counterWFP',0);\n}\nif (msg.topic === \"WFPumpSP\") {\n    global.set('wfpumpsd', msg.payload);\n    // push main pump run speed\n    msg.payload = Buffer.from(global.get('wfpumpsd'), \"hex\");\n    await delay(500);\n    return msg;\n}\n\nasync function delay(timeMs) {\n    await new Promise(resolve => setTimeout(resolve, timeMs));\n}",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 390,
+        "y": 400,
+        "wires": [
+            [
+                "11ef37aa9891664a"
+            ]
+        ]
+    },
+    {
+        "id": "4e0c59f08b380c9d",
+        "type": "function",
+        "z": "2242e2f628b1ea7d",
+        "name": "Pump Amp",
+        "func": "if(msg.payload === 1) {\n    // check pump amp's\n    msg.payload=Buffer.from(\"1545200001FCC5\",\"hex\");\n    await delay(800);\n    return msg;\n}\n\nasync function delay(timeMs) {\n    await new Promise(resolve => setTimeout(resolve, timeMs));\n}",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 870,
+        "y": 120,
+        "wires": [
+            [
+                "11ef37aa9891664a"
+            ]
+        ]
+    },
+    {
+        "id": "64146a262769c5e8",
+        "type": "function",
+        "z": "2242e2f628b1ea7d",
+        "name": "Pump Watts",
+        "func": "if(msg.payload[4] === 1 && msg.payload[0] === 21) {\n    var msgOutput = msg.payload[6].toString(16) + msg.payload[5].toString(16);\n    var msgSpeed = parseInt(msgOutput, 16) * 240; // Convert Amps to est. Watts\n    msgSpeed = msgSpeed/1000;  //scaling\n    return [{'payload':msgSpeed},{'payload':msgOutput}];\n}",
+        "outputs": 2,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1090,
+        "y": 520,
+        "wires": [
+            [
+                "28951a2641a3ef89"
+            ],
+            []
+        ]
+    },
+    {
+        "id": "28951a2641a3ef89",
+        "type": "ui_text",
+        "z": "2242e2f628b1ea7d",
+        "group": "48d756b4de93a0b0",
+        "order": 4,
+        "width": 0,
+        "height": 0,
+        "name": "",
+        "label": "Watt's",
+        "format": "{{msg.payload}}",
+        "layout": "row-spread",
+        "className": "",
+        "x": 1290,
+        "y": 520,
+        "wires": []
+    },
+    {
+        "id": "876f1aa51d257d52",
+        "type": "trigger",
+        "z": "2242e2f628b1ea7d",
+        "name": "",
+        "op1": "0",
+        "op2": "1",
+        "op1type": "num",
+        "op2type": "num",
+        "duration": "10",
+        "extend": false,
+        "overrideDelay": false,
+        "units": "s",
+        "reset": "0",
+        "bytopic": "all",
+        "topic": "topic",
+        "outputs": 1,
+        "x": 110,
+        "y": 40,
+        "wires": [
+            [
+                "de5be01573cf307a"
+            ]
+        ]
+    },
+    {
+        "id": "54457a0a23170106",
+        "type": "function",
+        "z": "2242e2f628b1ea7d",
+        "name": "Delay Shutoff Timer",
+        "func": "if (msg.payload === 'hand') {\n    msg.payload = 1;\n    return msg;\n}\nelse if (msg.payload === 'auto') {\n    msg.payload = 0;\n    return msg;\n}\nelse {\n    msg.payload = 0;\n    return msg;\n}",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 400,
+        "y": 40,
+        "wires": [
+            [
+                "876f1aa51d257d52"
+            ]
+        ]
+    },
+    {
+        "id": "de5be01573cf307a",
+        "type": "function",
+        "z": "2242e2f628b1ea7d",
+        "name": "HOA Reset",
+        "func": "if(msg.payload===1){\n    msg.payload = 'auto';\n    return msg;\n}",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 110,
+        "y": 100,
+        "wires": [
+            [
+                "38f7771f2fded410"
+            ]
+        ]
+    },
+    {
+        "id": "38f7771f2fded410",
+        "type": "ui_multistate_switch",
+        "z": "2242e2f628b1ea7d",
+        "name": "",
+        "group": "48d756b4de93a0b0",
+        "order": 1,
+        "width": 0,
+        "height": 0,
+        "label": "HOA Waterfall Pump",
+        "stateField": "payload",
+        "enableField": "enable",
+        "passthroughField": "passthrough",
+        "inputMsgField": "inputmsg",
+        "rounded": false,
+        "useThemeColors": true,
+        "hideSelectedLabel": false,
+        "multilineLabel": false,
+        "passThrough": "never",
+        "inputMsg": "all",
+        "userInput": "enabled_show",
+        "options": [
+            {
+                "label": "Off",
+                "value": "off",
+                "valueType": "str",
+                "color": "#009933"
+            },
+            {
+                "label": "Auto",
+                "value": "auto",
+                "valueType": "str",
+                "color": "#999999"
+            },
+            {
+                "label": "Hand",
+                "value": "hand",
+                "valueType": "str",
+                "color": "#ff6666"
+            }
+        ],
+        "topic": "",
+        "x": 140,
+        "y": 200,
+        "wires": [
+            [
+                "12e9a83fdd105b4b",
+                "54457a0a23170106"
+            ]
+        ]
+    },
+    {
+        "id": "2aa8b8db0686664c",
+        "type": "ui_digital_display",
+        "z": "2242e2f628b1ea7d",
+        "name": "Waterfall RPM Set",
+        "group": "7692346a821a947a",
+        "order": 6,
+        "width": 0,
+        "height": 0,
+        "digits": "4",
+        "decimals": "0",
+        "x": 370,
+        "y": 480,
+        "wires": []
+    },
+    {
+        "id": "9c44f69ffc362448",
+        "type": "function",
+        "z": "2242e2f628b1ea7d",
+        "name": "Set Pump Demand",
+        "func": "if (global.get('counterWFP') < 2) {\n    // push 2850 prime pump\n    msg.payload = Buffer.from(global.get('primepumpsd'), \"hex\");\n    global.set('counterWFP', global.get('counterWFP') + 1);\n    await delay(1500);\n    return msg;\n}\nif (global.get('counterWFP') > 24 && global.get('counterWFP') < 26) {\n    // push main pump run speed\n    msg.payload = Buffer.from(global.get('mainpumpsd'), \"hex\");\n    global.set('counterWFP', global.get('counterWFP') + 1);\n    await delay(1500);\n    return msg;\n}\n\nasync function delay(timeMs) {\n    await new Promise(resolve => setTimeout(resolve, timeMs));\n}",
+        "outputs": 1,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 670,
+        "y": 360,
+        "wires": [
+            [
+                "11ef37aa9891664a"
+            ]
+        ]
+    },
+    {
+        "id": "11ef37aa9891664a",
+        "type": "delay",
+        "z": "2242e2f628b1ea7d",
+        "name": "Message Buffer 50ms",
+        "pauseType": "rate",
+        "timeout": "5",
+        "timeoutUnits": "seconds",
+        "rate": "1",
+        "nbRateUnits": "0.05",
+        "rateUnits": "second",
+        "randomFirst": "1",
+        "randomLast": "5",
+        "randomUnits": "seconds",
+        "drop": false,
+        "allowrate": true,
+        "outputs": 1,
+        "x": 1120,
+        "y": 260,
+        "wires": [
+            [
+                "dca8bf402e9e9a2e"
+            ]
+        ]
+    },
+    {
+        "id": "7692346a821a947a",
+        "type": "ui_group",
+        "name": "Pump Set Points",
+        "tab": "c5577b4b5680aa1a",
+        "order": 4,
+        "disp": true,
+        "width": "6",
+        "collapse": false,
+        "className": ""
+    },
+    {
+        "id": "48d756b4de93a0b0",
+        "type": "ui_group",
+        "name": "Waterfall Pump",
+        "tab": "ca6ac7a4f6a7c932",
+        "order": 2,
+        "disp": true,
+        "width": "6",
+        "collapse": false,
+        "className": ""
+    },
+    {
+        "id": "c5577b4b5680aa1a",
+        "type": "ui_tab",
+        "name": "Set Points",
+        "icon": "dashboard",
+        "order": 2,
+        "disabled": false,
+        "hidden": false
+    },
+    {
+        "id": "ca6ac7a4f6a7c932",
+        "type": "ui_tab",
+        "name": "Home",
+        "icon": "dashboard",
+        "order": 1,
+        "disabled": false,
+        "hidden": false
+    }
+]
