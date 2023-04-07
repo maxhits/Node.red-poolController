@@ -94,7 +94,7 @@ Enable i2C-ao to start at boot up.  i2c is needed to communicate with the ADS111
 
     $ sudo ldto enable i2c-ao
 
-    $ sudo i2detect -y 1
+    $ sudo i2cdetect -y 1
 
 You should see address 0x49 or the address you assigned to the ADS1115 module via the jumpers on the board.  If you see the board there then next you need to make a service to enable the overlay at boot and make sure Node-red starts after that service.  
 
