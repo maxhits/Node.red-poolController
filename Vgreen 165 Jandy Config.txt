@@ -1,0 +1,38 @@
+Below is a terminal log that can be used as a guide to make a Vgreen 165 motor work with a Jandy RS-485 controller, Aqualink units.  Refer back to Pump RS-485_Gen3 EPC Modbus Communication document for more details.  
+
+Terminal log file
+---------------------------------------------------------------------------------
+15 64 20 0A 05 00 5B 84 		- send command to read one byte at address 0x0a (10 decimal) address 5
+15 64 10 0A 05 00 00 85 FF 		- motor's response, value of byte is 0
+
+
+15 64 20 8A 05 00 01 2D FB 		- send command to write value 01 in page 10 address 5
+15 64 10 8A 05 00 01 6D FF 		- motor's response
+
+15 65 20 4A 8C 				-  send command to store configuration in flash.
+15 65 10 4A 98 				- motor's response
+
+Power cycle motor, make sure DIP switch 5 is on.
+
+After power cycle send motor the "set demand" command in Jandy format
+
+10 02 78 44 00 10 00 27 05 10 03 	- Jandy command
+10 02 00 1F 44 00 10 27 00 AC 10 03 	- Motor responds
+
+now send go command in Jandy format
+
+10 02 78 41 CB 10 03 			- go command
+10 02 00 01 41 00 54 10 03 		- motor's response and motor starts!!!!
+
+send a Jandy discover command
+
+10 02 78 00 10 03 			- poll command
+ 10 02 00 1F 44 00 10 27 00 AC 10 03 	- motor's response
+
+motor stops after 60 seconds with no RS485 commands.
+
+send another go command
+
+10 02 78 41 CB 10 03 			- go command
+10 02 00 01 41 00 54 10 03 		- motor's response and motor starts again
+---------------------------------------------------------------------------------
