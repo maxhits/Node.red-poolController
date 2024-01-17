@@ -158,8 +158,9 @@ The flow assumes the following dashboard setup but is not limited to the setup.
     
 
 # To Do items
-
-  - Still need to fine tune and rework lighting control
-  - Still need to develop Heater control
+As of 01/17/2024
+  - Still need to fine tune and rework lighting control - still working on lighting control but does work
+  - Still need to develop Heater control - updated and has basic function now
+  - Fixed freeze protection controls
   - Bug search
   
